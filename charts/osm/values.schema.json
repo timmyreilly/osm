@@ -923,6 +923,5 @@
             },
             "additionalProperties": false
         }
-    },
-    "additionalProperties": false
+    }
 }
