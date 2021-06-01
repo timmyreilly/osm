@@ -167,6 +167,9 @@ OpenServiceMesh:
   # -- Deploy Jaeger during OSM installation
   deployJaeger: false
 
+  # -- Enable multicluster
+  enableMulticluster: false 
+
   #
   # -- Tracing parameters
   #
