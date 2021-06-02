@@ -139,14 +139,7 @@ func (c *Client) initEndpointMonitor() {
 func (c *Client) initRemoteServiceMonitor() {
 	informerFactory := informers.NewSharedInformerFactory(c.kubeClient, DefaultKubeEventResyncInterval)
 	// Assuming remote service will sit in Config Api https://docs.openservicemesh.io/docs/apidocs/config/v1alpha1/ 
-	// Debugging: informerFactory.Core().V1().RemoteServices undefined (type "k8s.io/client-go/informers/core/v1".Interface has no field or method RemoteServices)
-	// WG: NewSharedInformerFactory does not have the concept of informer handlers 
-	// WG: informerCollection
-	// WG: SharedIndexInformer
-	// WG: policy.openservicemesh.io=== informerFactory.Policy().V1alpha1().Egresses().Informer()
-	// WG: Is there a config Client ? newPolicyClient() that creates k8s clients for resources in the config 
-	// WG: should this be V1Alpha1? versioning: pkg/gen/client/config/clientset and pkg/gen/client/config/informers
-	c.informers[RemoteServices] = informerFactory.Core().V1().RemoteServices().Informer()
+	c.informers[RemoteServices] = informerFactory.Core().V1Alpha1().RemoteServices().Informer()
 
 	eptEventTypes := EventTypes{
 		Add:    announcements.EndpointAdded,
