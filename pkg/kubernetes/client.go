@@ -36,11 +36,12 @@ func NewKubernetesController(kubeClient kubernetes.Interface, meshName string, s
 		ServiceAccounts: client.initServiceAccountsMonitor,
 		Pods:            client.initPodMonitor,
 		Endpoints:       client.initEndpointMonitor,
+		RemoteServices:  client.initRemoteServiceMonitor,
 	}
 
 	// If specific informers are not selected to be initialized, initialize all informers
 	if len(selectInformers) == 0 {
-		selectInformers = []InformerKey{Namespaces, Services, ServiceAccounts, Pods, Endpoints}
+		selectInformers = []InformerKey{Namespaces, Services, ServiceAccounts, Pods, Endpoints, RemoteServices}
 	}
 
 	for _, informer := range selectInformers {
@@ -132,6 +133,27 @@ func (c *Client) initEndpointMonitor() {
 		Delete: announcements.EndpointDeleted,
 	}
 	c.informers[Endpoints].AddEventHandler(GetKubernetesEventHandlers((string)(Endpoints), providerName, c.shouldObserve, eptEventTypes))
+}
+
+// Initializes Remote Service monitoring
+func (c *Client) initRemoteServiceMonitor() {
+	informerFactory := informers.NewSharedInformerFactory(c.kubeClient, DefaultKubeEventResyncInterval)
+	// Assuming remote service will sit in Config Api https://docs.openservicemesh.io/docs/apidocs/config/v1alpha1/ 
+	// Debugging: informerFactory.Core().V1().RemoteServices undefined (type "k8s.io/client-go/informers/core/v1".Interface has no field or method RemoteServices)
+	// WG: NewSharedInformerFactory does not have the concept of informer handlers 
+	// WG: informerCollection
+	// WG: SharedIndexInformer
+	// WG: policy.openservicemesh.io=== informerFactory.Policy().V1alpha1().Egresses().Informer()
+	// WG: Is there a config Client ? newPolicyClient() that creates k8s clients for resources in the config 
+	// WG: should this be V1Alpha1? versioning: pkg/gen/client/config/clientset and pkg/gen/client/config/informers
+	c.informers[RemoteServices] = informerFactory.Core().V1().RemoteServices().Informer()
+
+	eptEventTypes := EventTypes{
+		Add:    announcements.EndpointAdded,
+		Update: announcements.EndpointUpdated,
+		Delete: announcements.EndpointDeleted,
+	}
+	c.informers[RemoteServices].AddEventHandler(GetKubernetesEventHandlers((string)(RemoteServices), providerName, c.shouldObserve, eptEventTypes))
 }
 
 func (c *Client) run(stop <-chan struct{}) error {
