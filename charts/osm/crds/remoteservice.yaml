@@ -23,8 +23,8 @@ spec:
             spec:
               type: object
               required:
-                - cluster
                 - equivalence
+                - cluster
               properties:
                 equivalence:
                   description: |-
