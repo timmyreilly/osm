@@ -212,6 +212,7 @@ func main() {
 		policyController,
 		stop,
 		cfg,
+		configController,
 		endpointsProviders...)
 
 	proxyRegistry := registry.NewProxyRegistry(&registry.KubeProxyServiceMapper{KubeController: kubernetesClient})
