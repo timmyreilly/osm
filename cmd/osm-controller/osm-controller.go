@@ -27,6 +27,7 @@ import (
 
 	"github.com/openservicemesh/osm/pkg/catalog"
 	"github.com/openservicemesh/osm/pkg/certificate/providers"
+	"github.com/openservicemesh/osm/pkg/config"
 	"github.com/openservicemesh/osm/pkg/configurator"
 	"github.com/openservicemesh/osm/pkg/constants"
 	"github.com/openservicemesh/osm/pkg/debugger"
@@ -204,15 +205,20 @@ func main() {
 		events.GenericEventRecorder().FatalEvent(err, events.InitializationError, "Error creating controller for policy.openservicemesh.io")
 	}
 
+	configController, err := config.NewConfigController(kubeConfig, kubernetesClient, stop)
+	if err != nil {
+		events.GenericEventRecorder().FatalEvent(err, events.InitializationError, "Error creating controller for config.openservicemesh.io")
+	}
+
 	meshCatalog := catalog.NewMeshCatalog(
 		kubernetesClient,
 		meshSpec,
 		certManager,
 		ingressClient,
 		policyController,
+		configController,
 		stop,
 		cfg,
-		configController,
 		endpointsProviders...)
 
 	proxyRegistry := registry.NewProxyRegistry(&registry.KubeProxyServiceMapper{KubeController: kubernetesClient})
