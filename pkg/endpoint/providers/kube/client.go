@@ -11,6 +11,7 @@ import (
 
 	"github.com/openservicemesh/osm/pkg/configurator"
 	"github.com/openservicemesh/osm/pkg/endpoint"
+	"github.com/openservicemesh/osm/pkg/featureflags"
 	"github.com/openservicemesh/osm/pkg/identity"
 	k8s "github.com/openservicemesh/osm/pkg/kubernetes"
 	"github.com/openservicemesh/osm/pkg/service"
@@ -37,6 +38,11 @@ func (c *Client) GetID() string {
 func (c Client) ListEndpointsForService(svc service.MeshService) []endpoint.Endpoint {
 	log.Trace().Msgf("[%s] Getting Endpoints for service %s on Kubernetes", c.providerIdent, svc)
 	var endpoints []endpoint.Endpoint
+
+	if featureflags.Features.MulticlusterMode && !svc.IsLocal() {
+		// obj := get the obj
+		// iterate over the list, return the endpoints.
+	}
 
 	kubernetesEndpoints, err := c.kubeController.GetEndpoints(svc)
 	if err != nil || kubernetesEndpoints == nil {
@@ -98,9 +104,14 @@ func (c Client) ListEndpointsForIdentity(serviceIdentity identity.ServiceIdentit
 }
 
 // GetServicesForServiceAccount retrieves a list of services for the given service account.
-func (c Client) GetServicesForServiceAccount(svcAccount identity.K8sServiceAccount) ([]service.MeshService, error) {
+func (c Client) GetServicesForServiceAccount(svcIdentity identity.ServiceIdentity) ([]service.MeshService, error) {
 	services := mapset.NewSet()
 
+	if featureflags.IsMulticlusterModeEnabled() {
+		services.Add() // all from object
+	}
+
+	svcAccount := svcIdentity.ToK8sServiceAccount()
 	for _, pod := range c.kubeController.ListPods() {
 		if pod.Namespace != svcAccount.Namespace {
 			continue
@@ -136,6 +147,8 @@ func (c Client) GetServicesForServiceAccount(svcAccount identity.K8sServiceAccou
 	for svc := range services.Iterator().C {
 		servicesSlice = append(servicesSlice, svc.(service.MeshService))
 	}
+
+	// query for the MultiClusterService
 
 	return servicesSlice, nil
 }
