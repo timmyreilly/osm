@@ -43,15 +43,14 @@ func (c Client) ListEndpointsForService(svc service.MeshService) []endpoint.Endp
 		multiclustersvc, _ := c.kubeController.ListMultiClusterServices()
 		for _, cluster := range multiclustersvc {
 			for _, clusterSpec := range cluster.Spec.Cluster {
-				parsed_address := strings.Split(clusterSpec.Address, ":")
-				port, _ := strconv.ParseUint(parsed_address[1], 10, 32)
+				parsedAddress := strings.Split(clusterSpec.Address, ":")
+				port, _ := strconv.ParseUint(parsedAddress[1], 10, 32)
 				endpoints = append(endpoints, endpoint.Endpoint{
-					IP:   net.ParseIP(parsed_address[0]),
+					IP:   net.ParseIP(parsedAddress[0]),
 					Port: endpoint.Port(port),
 				})
 			}
 		}
-		// iterate over the list get the endpoints.
 	}
 
 	kubernetesEndpoints, err := c.kubeController.GetEndpoints(svc)
@@ -91,6 +90,20 @@ func (c Client) ListEndpointsForIdentity(serviceIdentity identity.ServiceIdentit
 	log.Trace().Msgf("[%s] Getting Endpoints for service account %s on Kubernetes", c.providerIdent, sa)
 	var endpoints []endpoint.Endpoint
 
+	multiclusterServices, _ := c.kubeController.ListMultiClusterServices()
+	for _, mcs := range multiclusterServices {
+		if mcs.Spec.ServiceAccount == sa.Name {
+			for _, cluster := range mcs.Spec.Cluster {
+				parsedAddress := strings.Split(cluster.Address, ":")
+				port, _ := strconv.ParseUint(parsedAddress[1], 10, 32)
+				endpoints = append(endpoints, endpoint.Endpoint{
+					IP:   net.ParseIP(parsedAddress[0]),
+					Port: endpoint.Port(port),
+				})
+			}
+		}
+	}
+
 	podList := c.kubeController.ListPods()
 	for _, pod := range podList {
 		if pod.Namespace != sa.Namespace {
@@ -117,24 +130,8 @@ func (c Client) ListEndpointsForIdentity(serviceIdentity identity.ServiceIdentit
 func (c Client) GetServicesForServiceAccount(svcAccount identity.K8sServiceAccount) ([]service.MeshService, error) {
 	services := mapset.NewSet()
 
-	// iterate of multicluster service
-	// find services at this service account?
-	// get the list of multiclusterservices if equal to
-	// return list of meshservices based off that
-	// three multicluster services (saA, saB) // bookstore, bookstore, and bookwarehouse
-	// getServicesForServiceAccount will return 6 services. if serviceAccount matches
-	// ListMulticlusterServices.serviceAccount == svcAccount
-	// 	add to list of services
-	// // if mcs.serviceAccount == svcAccount {
-	// // 	sa := mcs.serviceAccount
-	// // 	sa == svcAccount.Namespace
-
-	// 	// for each cluster services.add serviceAccount where mcs
-	// 	// generate svc.meshservice from the multicluster
-	// 	// create svc.meshservice
-
-	multicluster_services, _ := c.kubeController.ListMultiClusterServices()
-	for _, mcs := range multicluster_services {
+	multiclusterServices, _ := c.kubeController.ListMultiClusterServices()
+	for _, mcs := range multiclusterServices {
 		if mcs.Spec.ServiceAccount == svcAccount.Name {
 			services.Add(service.MeshService{
 				Namespace: mcs.Namespace,
